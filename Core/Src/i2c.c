@@ -136,7 +136,7 @@ void HAL_I2C_MspDeInit(I2C_HandleTypeDef* i2cHandle)
 uint8_t STM32_I2C_Write(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t len) {
     uint8_t target_reg = reg_addr;
 
-    // Multi-byte ST sensor transfer: Set the MSB to 1 for address auto-increment
+    // Multi-byte ST sensor transfer: set the MSB to 1 for address auto-increment
     if (len > 1) {
         target_reg |= 0x80;
     }
