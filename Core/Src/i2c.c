@@ -133,5 +133,33 @@ void HAL_I2C_MspDeInit(I2C_HandleTypeDef* i2cHandle)
 
 /* USER CODE BEGIN 1 */
 
+uint8_t STM32_I2C_Write(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t len) {
+    uint8_t target_reg = reg_addr;
+
+    // Multi-byte ST sensor transfer: Set the MSB to 1 for address auto-increment
+    if (len > 1) {
+        target_reg |= 0x80;
+    }
+
+    // Shift the 7-bit address to the left for HAL
+    if (HAL_I2C_Mem_Write(&hi2c1, (dev_addr << 1), target_reg, I2C_MEMADD_SIZE_8BIT, data, len, 100) == HAL_OK) {
+        return 0; // Success
+    }
+    return 1; // Error
+}
+
+uint8_t STM32_I2C_Read(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t len) {
+    uint8_t target_reg = reg_addr;
+
+    if (len > 1) {
+        target_reg |= 0x80;
+    }
+
+    if (HAL_I2C_Mem_Read(&hi2c1, (dev_addr << 1), target_reg, I2C_MEMADD_SIZE_8BIT, data, len, 100) == HAL_OK) {
+        return 0; // Success
+    }
+    return 1; // Error
+}
+
 /* USER CODE END 1 */
 
