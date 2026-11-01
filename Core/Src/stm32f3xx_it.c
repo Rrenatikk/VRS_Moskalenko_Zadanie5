@@ -56,7 +56,6 @@
 
 /* External variables --------------------------------------------------------*/
 extern I2C_HandleTypeDef hi2c1;
-extern DMA_HandleTypeDef hdma_usart2_tx;
 /* USER CODE BEGIN EV */
 	extern volatile uint32_t system_ticks;
 	extern uint32_t last_interrupt_time;
@@ -207,7 +206,6 @@ void DMA1_Channel7_IRQHandler(void)
   /* USER CODE BEGIN DMA1_Channel7_IRQn 0 */
 
   /* USER CODE END DMA1_Channel7_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_usart2_tx);
   /* USER CODE BEGIN DMA1_Channel7_IRQn 1 */
 
   /* USER CODE END DMA1_Channel7_IRQn 1 */

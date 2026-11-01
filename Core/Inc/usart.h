@@ -32,8 +32,6 @@ extern "C" {
 
 /* USER CODE END Includes */
 
-extern UART_HandleTypeDef huart2;
-
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
@@ -41,7 +39,7 @@ extern UART_HandleTypeDef huart2;
 void MX_USART2_UART_Init(void);
 
 /* USER CODE BEGIN Prototypes */
-
+void USART2_PutBuffer(uint8_t *buffer, uint16_t length);
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus
