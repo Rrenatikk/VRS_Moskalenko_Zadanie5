@@ -25,6 +25,9 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "hts221.h"
+#include "lps22hb.h"
+#include <stdio.h>
 
 /* USER CODE END Includes */
 
@@ -59,6 +62,10 @@ void SystemClock_Config(void);
 /* USER CODE BEGIN 0 */
 	volatile uint32_t system_ticks = 0;
 	uint32_t last_interrupt_time = 0;
+	HTS221_t hts221;
+	LPS22HB_t LPS22HB;
+	char tx_buffer[128];
+	float temp, hum, press, alt;
 /* USER CODE END 0 */
 
 /**
@@ -95,43 +102,42 @@ int main(void)
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
 
-	// 1. Enabling the clock signal for GPIOA
-	RCC->AHBENR |= RCC_AHBENR_GPIOAEN;
+  LL_mDelay(50);
 
-	// 2. Configuring Pin PA4 as an output (for an LED)
-	GPIOA->MODER &= ~(GPIO_MODER_MODER4); // Clearing MODER4 Bits
-	GPIOA->MODER |= GPIO_MODER_MODER4_0;  // Setting the Output Mode (01)
+  uint8_t sensors_ok = 0;
+  for (int attempt = 0; attempt < 5 && !sensors_ok; attempt++) {
+      sensors_ok = (HTS221_Init(&hts221, STM32_I2C_Write, STM32_I2C_Read) == 0) &&
+                   (LPS22HB_Init(&LPS22HB, STM32_I2C_Write, STM32_I2C_Read) == 0);
+      if (!sensors_ok) {
+          LL_mDelay(100);
+      }
+  }
+  if (!sensors_ok) {
+      while (1) {}   // датчики так и не ответили
+  }
 
-	// 3. Configuring pin PA3 as a pulled-up input (for a button)
-	GPIOA->MODER &= ~(GPIO_MODER_MODER3); // Input Mode (00)
-	GPIOA->PUPDR &= ~(GPIO_PUPDR_PUPDR3); // Cleaning the pull-up bits
-	GPIOA->PUPDR |= GPIO_PUPDR_PUPDR3_0;  // Enabling Pull-up (01)
-
-	// 4. Configuring EXTI for PA3
-	// Configuring the priority and enabling the EXTI3 interrupt in the NVIC (Pin 9)
-	NVIC->IP[9] |= 2 << 4;
-	NVIC->ISER[0] |= 1 << 9;
-
-	// Connecting Pin PA3 to the EXTI3 Line in SYSCFG
-	SYSCFG->EXTICR[0] &= ~(0xFU << 12U); // Set the value of port A on line 3 to 0000
-
-	// Interrupt Enable on Line 3 (Mask Disable)
-	EXTI->IMR |= EXTI_IMR_MR3;
-
-	// Setting a trigger for both edges (rising and falling)
-	EXTI->RTSR |= EXTI_IMR_MR3; // Enable rising-edge triggering
-	EXTI->FTSR |= EXTI_IMR_MR3; // Enable triggering on the falling edge
+  LL_mDelay(100);    // дождаться первого измерения
+  LPS22HB_SetReferencePressure(&LPS22HB);
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (1)
-  {
-    /* USER CODE END WHILE */
+  	while (1)
+  	{
+  	    /* USER CODE END WHILE */
 
-    /* USER CODE BEGIN 3 */
-  }
+  	    /* USER CODE BEGIN 3 */
+  	    temp = LPS22HB_ReadTemperature(&LPS22HB);
+  	    hum = HTS221_ReadHumidity(&hts221);
+  	    press = LPS22HB_ReadPressure(&LPS22HB);
+  	    alt = LPS22HB_GetRelativeAltitude(&LPS22HB);
+
+  	    int len = snprintf(tx_buffer, sizeof(tx_buffer), "%.1f,%.0f,%.2f,%.2f\r\n", temp, hum, press, alt);
+  	    USART2_PutBuffer((uint8_t *)tx_buffer, len);
+
+		LL_mDelay(100);
+  	}
   /* USER CODE END 3 */
 }
 
@@ -141,8 +147,8 @@ int main(void)
   */
 void SystemClock_Config(void)
 {
-  LL_FLASH_SetLatency(LL_FLASH_LATENCY_0);
-  while(LL_FLASH_GetLatency()!= LL_FLASH_LATENCY_0)
+  LL_FLASH_SetLatency(LL_FLASH_LATENCY_2);
+  while(LL_FLASH_GetLatency()!= LL_FLASH_LATENCY_2)
   {
   }
   LL_RCC_HSI_Enable();
@@ -153,17 +159,25 @@ void SystemClock_Config(void)
 
   }
   LL_RCC_HSI_SetCalibTrimming(16);
-  LL_RCC_SetAHBPrescaler(LL_RCC_SYSCLK_DIV_1);
-  LL_RCC_SetAPB1Prescaler(LL_RCC_APB1_DIV_1);
-  LL_RCC_SetAPB2Prescaler(LL_RCC_APB2_DIV_1);
-  LL_RCC_SetSysClkSource(LL_RCC_SYS_CLKSOURCE_HSI);
+  LL_RCC_PLL_ConfigDomain_SYS(LL_RCC_PLLSOURCE_HSI_DIV_2, LL_RCC_PLL_MUL_16);
+  LL_RCC_PLL_Enable();
 
-   /* Wait till System clock is ready */
-  while(LL_RCC_GetSysClkSource() != LL_RCC_SYS_CLKSOURCE_STATUS_HSI)
+   /* Wait till PLL is ready */
+  while(LL_RCC_PLL_IsReady() != 1)
   {
 
   }
-  LL_SetSystemCoreClock(8000000);
+  LL_RCC_SetAHBPrescaler(LL_RCC_SYSCLK_DIV_1);
+  LL_RCC_SetAPB1Prescaler(LL_RCC_APB1_DIV_2);
+  LL_RCC_SetAPB2Prescaler(LL_RCC_APB2_DIV_1);
+  LL_RCC_SetSysClkSource(LL_RCC_SYS_CLKSOURCE_PLL);
+
+   /* Wait till System clock is ready */
+  while(LL_RCC_GetSysClkSource() != LL_RCC_SYS_CLKSOURCE_STATUS_PLL)
+  {
+
+  }
+  LL_SetSystemCoreClock(64000000);
 
    /* Update the time base */
   if (HAL_InitTick (TICK_INT_PRIORITY) != HAL_OK)
