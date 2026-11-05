@@ -82,7 +82,14 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+  LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_SYSCFG);
+  LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_PWR);
+
+  /* System interrupt init*/
+  NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
+
+  /* SysTick_IRQn interrupt configuration */
+  NVIC_SetPriority(SysTick_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),15, 0));
 
   /* USER CODE BEGIN Init */
 
@@ -105,8 +112,8 @@ int main(void)
   LL_mDelay(50);
 
   // debug input
-//  char init_msg[] = "System Init...\r\n";
-//  USART2_PutBuffer((uint8_t*)init_msg, 16);
+  char init_msg[] = "System Init...\r\n";
+  USART2_PutBuffer((uint8_t*)init_msg, 16);
 
   uint8_t sensors_ok = 0;
   for (int attempt = 0; attempt < 5 && !sensors_ok; attempt++) {
@@ -129,9 +136,9 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   	while (1)
   	{
-  	    /* USER CODE END WHILE */
+    /* USER CODE END WHILE */
 
-  	    /* USER CODE BEGIN 3 */
+    /* USER CODE BEGIN 3 */
   	    temp = LPS22HB_ReadTemperature(&LPS22HB);
   	    hum = HTS221_ReadHumidity(&hts221);
   	    press = LPS22HB_ReadPressure(&LPS22HB);
@@ -181,13 +188,8 @@ void SystemClock_Config(void)
   {
 
   }
+  LL_Init1msTick(64000000);
   LL_SetSystemCoreClock(64000000);
-
-   /* Update the time base */
-  if (HAL_InitTick (TICK_INT_PRIORITY) != HAL_OK)
-  {
-    Error_Handler();
-  }
   LL_RCC_SetI2CClockSource(LL_RCC_I2C1_CLKSOURCE_HSI);
 }
 
