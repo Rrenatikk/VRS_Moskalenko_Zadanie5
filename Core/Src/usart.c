@@ -97,12 +97,17 @@ void MX_USART2_UART_Init(void)
 /* USER CODE BEGIN 1 */
 void USART2_PutBuffer(uint8_t *buffer, uint16_t length)
 {
-    while (LL_DMA_GetDataLength(DMA1, LL_DMA_CHANNEL_7) != 0) {}  // waiting for the previous data transfer to finish
+    while (LL_DMA_GetDataLength(DMA1, LL_DMA_CHANNEL_7) != 0) {}  // waiting for the previous data transfer to finish[cite: 21]
+
     LL_DMA_DisableChannel(DMA1, LL_DMA_CHANNEL_7);
+
+    // Important: Clear the transmission completion and error flags before a new start
+    LL_DMA_ClearFlag_TC7(DMA1);
+    LL_DMA_ClearFlag_TE7(DMA1);
+
     LL_DMA_SetMemoryAddress(DMA1, LL_DMA_CHANNEL_7, (uint32_t)buffer);
     LL_DMA_SetDataLength(DMA1, LL_DMA_CHANNEL_7, length);
     LL_DMA_EnableChannel(DMA1, LL_DMA_CHANNEL_7);
 }
-
 /* USER CODE END 1 */
 

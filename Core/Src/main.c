@@ -104,6 +104,10 @@ int main(void)
 
   LL_mDelay(50);
 
+  // debug input
+//  char init_msg[] = "System Init...\r\n";
+//  USART2_PutBuffer((uint8_t*)init_msg, 16);
+
   uint8_t sensors_ok = 0;
   for (int attempt = 0; attempt < 5 && !sensors_ok; attempt++) {
       sensors_ok = (HTS221_Init(&hts221, STM32_I2C_Write, STM32_I2C_Read) == 0) &&
@@ -113,10 +117,10 @@ int main(void)
       }
   }
   if (!sensors_ok) {
-      while (1) {}   // датчики так и не ответили
+      while (1) {}   // sensors do not respond
   }
 
-  LL_mDelay(100);    // дождаться первого измерения
+  LL_mDelay(100);    // waiting for the first connection
   LPS22HB_SetReferencePressure(&LPS22HB);
 
   /* USER CODE END 2 */
